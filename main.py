@@ -23,12 +23,18 @@ class HttpRequestHandler(BaseHTTPRequestHandler):
             length = int(self.headers['content-length'])
             postvars = parse.parse_qsl(
                 self.rfile.read(length),
+                encoding='utf-8',
+                errors='replace',
                 keep_blank_values=1)
         else:
             postvars = []
 
-        url = postvars[0][1].decode()
-        res_json = wall(url)
+        postvars = dict(postvars)
+
+        url = postvars.get(b'url', "").decode()
+        id = postvars.get(b'id', 0).decode()
+
+        res_json = wall(id, url)
 
         self.wfile.write(res_json.encode())
 
@@ -40,7 +46,7 @@ def memory_usage(message: str = 'debug'):
     print(f"[{message}] memory usage: {rss: 10.5f} MB")
 
 
-def wall(url):
+def wall(id, url):
     start = time.time()
     image = cv2.imread(url)
     image1 = np.zeros(image.shape, np.uint8)
@@ -81,14 +87,10 @@ def wall(url):
 
         cv2.drawContours(image1, [approx], 0, (0, 255, 0), 3)
 
-    # cv2.imshow('contour', image1)
-    print("time :", time.time() - start)
-    # cv2.waitKey(0)
+    json_obj = {"id": id, "points": points}
+    json_string = json.dumps(json_obj, sort_keys=True, indent=4)
 
-    json_obj = json.dumps(points, sort_keys=True, indent=4)
-    # print(json_obj)
-
-    return json_obj
+    return json_string
 
 
 server = HTTPServer(('', port), HttpRequestHandler)
