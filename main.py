@@ -6,6 +6,9 @@ import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from cgi import parse_header
 from urllib import parse
+import ssl
+import urllib.request
+import io
 
 port = 12345
 
@@ -46,9 +49,18 @@ def memory_usage(message: str = 'debug'):
     print(f"[{message}] memory usage: {rss: 10.5f} MB")
 
 
+def url_to_image(url):
+    context = ssl._create_unverified_context()
+
+    resp = urllib.request.urlopen(url, context=context)
+    image = np.asarray(bytearray(resp.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    # return the image
+    return image
+
+
 def wall(id, url):
-    start = time.time()
-    image = cv2.imread(url)
+    image = url_to_image(url)
     image1 = np.zeros(image.shape, np.uint8)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -95,5 +107,4 @@ def wall(id, url):
 
 server = HTTPServer(('', port), HttpRequestHandler)
 server.serve_forever()
-
 
